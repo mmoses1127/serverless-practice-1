@@ -1,0 +1,111 @@
+org: mmoses1127
+app: aws-node-http-api-project
+service: aws-node-http-api-project
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  iam:
+    role:
+      statements:
+        - Effect: 'Allow'
+          Action:
+            - 'dynamodb:PutItem'
+            - 'dynamodb:Get*'
+            - 'dynamodb:Scan*'
+            - 'dynamodb:UpdateItem'
+            - 'dynamodb:DeleteItem'
+          Resource: arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:service}-customerTable-${sls:stage}
+        - Effect: 'Allow'
+          Action:
+            - "sns:Publish"
+          Resource: 
+            - !Ref NewCustomersTopic
+  environment:
+    DYNAMODB_CUSTOMER_TABLE: ${self:service}-customerTable-${sls:stage}
+    NEW_CUSTOMERS_TOPIC_ARN: !Ref NewCustomersTopic
+
+functions:
+  createCustomer:
+    handler: createCustomer.createCustomer
+    events:
+      - httpApi:
+          path: /
+          method: post
+  getCustomers:
+    handler: getCustomers.getCustomers
+    events:
+      - httpApi:
+          path: /customers
+          method: get
+  getCustomer:
+    handler: getCustomer.getCustomer
+    events:
+      - sns:
+          arn: !Ref NewCustomersTopic
+          topicName: NewCustomers
+  updateCustomer:
+    handler: updateCustomer.updateCustomer
+    events:
+      - httpApi:
+          path: /customers
+          method: put
+  deleteCustomer:
+    handler: deleteCustomer.deleteCustomer
+    events:
+      - httpApi:
+          path: /customers
+          method: delete
+
+stepFunctions:
+  stateMachines:
+    processDeleteCustomer:
+      events:
+        - http:
+            path: /start-step-fxn
+            method: post
+      definition:
+        Comment: "Get info about a customer, delete, and display remaining customers"
+        StartAt: GetCustomer
+        States:
+          GetCustomer:
+            Type: Task
+            Resource: "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${sls:stage}-getCustomer"
+            Next: DeleteCustomer
+          DeleteCustomer:
+            Type: Task
+            Resource: "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${sls:stage}-deleteCustomer"
+            Next: GetCustomers
+          GetCustomers:
+            Type: Task
+            Resource: "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${sls:stage}-getCustomers"
+            End: true
+
+resources:
+  Resources:
+    CustomerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: primary_key
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: primary_key
+            KeyType: HASH
+        TableName: ${self:service}-customerTable-${sls:stage}
+    NewCustomersTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: 'New Customers Topic'
+        TopicName: NewCustomers
+
+outputs:
+  DeleteCustomerStateMachine:
+    Description: The ARN of the state machine
+    Value:
+      Ref: processDeleteCustomer
+
+plugins:
+  - serverless-step-functions

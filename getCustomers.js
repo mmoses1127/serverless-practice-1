@@ -13,6 +13,9 @@ module.exports.getCustomers = async (event) => {
   if (result.Count === 0) {
     return {
       statusCode: 404,
+      body: JSON.stringify({
+        message: 'No customers found',
+      }),
     };
   }
 

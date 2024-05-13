@@ -25,7 +25,10 @@ module.exports.getCustomer = async (event) => {
   if (!result.Item) {
     console.log('Customer not found');
     return {
-      statusCode: 404
+      statusCode: 404,
+      body: JSON.stringify({
+        message: 'Customer not found'
+      })
     };
   }
 

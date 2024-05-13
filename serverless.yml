@@ -30,14 +30,14 @@ functions:
   createCustomer:
     handler: createCustomer.createCustomer
     events:
-      - httpApi:
-          path: /
+      - http:
+          path: customers
           method: post
   getCustomers:
     handler: getCustomers.getCustomers
     events:
-      - httpApi:
-          path: /customers
+      - http:
+          path: customers
           method: get
   getCustomer:
     handler: getCustomer.getCustomer
@@ -48,14 +48,14 @@ functions:
   updateCustomer:
     handler: updateCustomer.updateCustomer
     events:
-      - httpApi:
-          path: /customers
+      - http:
+          path: customers
           method: put
   deleteCustomer:
     handler: deleteCustomer.deleteCustomer
     events:
-      - httpApi:
-          path: /customers
+      - http:
+          path: customers
           method: delete
 
 stepFunctions:
@@ -63,7 +63,7 @@ stepFunctions:
     processDeleteCustomer:
       events:
         - http:
-            path: /start-step-fxn
+            path: start-step-fxn
             method: post
       definition:
         Comment: "Get info about a customer, delete, and display remaining customers"

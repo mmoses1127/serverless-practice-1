@@ -14,9 +14,25 @@ module.exports.deleteCustomer = async (event) => {
       primary_key: body.name
     }
   }
-  await dynamoDb.delete(deleteParams).promise()
+
+  try {
+    await dynamoDb.delete(deleteParams).promise()
+  } catch(err) {
+    console.log('Error occured while deleting item in DB: ', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Error occured while deleting item in DB'
+      })
+    };
+  }
+
 
   return {
-    statusCode: 200
+    statusCode: 200,
+    body: JSON.stringify({
+      operation: 'DELETE',
+      name: body.name
+    })
   }
 }

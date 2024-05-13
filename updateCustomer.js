@@ -8,6 +8,7 @@ module.exports.updateCustomer = async (event) => {
   console.log('bodyString', bodyString)
   const body = JSON.parse(bodyString)
   const dynamoDb = new AWS.DynamoDB.DocumentClient()
+  
   const updateParams = {
     TableName: process.env.DYNAMODB_CUSTOMER_TABLE,
     Key: {
@@ -15,12 +16,28 @@ module.exports.updateCustomer = async (event) => {
     },
     UpdateExpression: 'set email = :email',
     ExpressionAttributeValues: {
-      ':email': body.email
+      ':email': body.email,
     }
   }
-  await dynamoDb.update(updateParams).promise()
+
+  try {
+    await dynamoDb.update(updateParams).promise()
+  } catch(err) {
+    console.log('Error occured while updating item in DB: ', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Error occured while updating item in DB'
+      })
+    };
+  }
 
   return {
-    statusCode: 200
+    statusCode: 200,
+    body: JSON.stringify({
+      operation: 'UPDATE',
+      name: body.name,
+      'new email': body.email
+    })
   }
 }

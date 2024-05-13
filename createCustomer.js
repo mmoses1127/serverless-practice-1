@@ -15,7 +15,18 @@ module.exports.createCustomer = async (event) => {
       email: body.email,
     },
   };
-  await dynamoDb.put(putParams).promise();
+
+  try {
+    await dynamoDb.put(putParams).promise();
+  } catch(err) {
+    console.log('Error occured while putting item in DB: ', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Error occured while putting item in DB'
+      })
+    };
+  }
 
   console.log('DB put process complete. Publishing to SNS...')
 
@@ -40,11 +51,22 @@ module.exports.createCustomer = async (event) => {
   .catch(function (err) {
     console.log('Error occurred while publishing to SNS topic')
     console.error(err, err.stack);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Error occurred while publishing to SNS topic'
+      })
+    };
   });
 
   console.log('SNS publish process complete')
 
   return {
     statusCode: 201,
+    body: JSON.stringify({
+      operation: 'ADD',
+      name: body.name,
+      email: body.email
+    })
   };
 };
